@@ -2,10 +2,10 @@
 // @id             iitc-plugin-extend-link@Jormund
 // @name           IITC plugin: extend link
 // @category       Layer
-// @version        0.1.0.20160821.1840
+// @version        0.1.1.20160821.2003
 // @namespace      https://github.com/jonatkins/ingress-intel-total-conversion
 // @downloadURL    https://github.com/Jormund/extend_link/raw/master/extend_link.user.js
-// @description    [2016-08-21-1840] Draw the line between consecutive bookmarks and extend it
+// @description    [2016-08-21-2003] Draw the line between consecutive bookmarks and extend it
 // @include        https://www.ingress.com/intel*
 // @include        http://www.ingress.com/intel*
 // @match          https://www.ingress.com/intel*
@@ -214,6 +214,67 @@ function wrapper(plugin_info) {
                 throw err;
         }
     }
+	/***************************************************************************************************************************************************************/
+    //Options//
+	/*********/
+	window.plugin.extendLink.resetOpt = function () {
+		window.plugin.extendLink.storage.linkLength = window.plugin.extendLink.DEFAULT_LINK_LENGTH;
+        window.plugin.extendLink.storage.clearBeforeDraw = window.plugin.extendLink.DEFAULT_CLEAR_BEFORE_DRAW;
+
+		window.plugin.extendLink.openOptDialog();
+	}
+	window.plugin.extendLink.saveOpt = function () {
+		window.plugin.extendLink.storage.clearBeforeDraw = $('#extendLink-clearBeforeDraw').is(":checked");
+		var linkLength = $('#extendLink-linkLength').val();
+		linkLength = parseFloat(linkLength);
+		if(!isNaN(linkLength))window.plugin.extendLink.storage.linkLength = linkLength;
+			
+		window.plugin.extendLink.saveStorage();
+	}
+	window.plugin.extendLink.optClicked = function () {
+		window.plugin.extendLink.openOptDialog();
+	}
+	window.plugin.extendLink.openOptDialog = function () {
+		var html = 
+		'<div>' +
+			'<table>';
+		html +=
+			'<tr>' +
+				'<td>' +
+					'Clear before draw' +
+				'</td>' +
+				'<td>' +
+					'<input id="extendLink-clearBeforeDraw" type="checkbox" '+
+						(window.plugin.extendLink.storage.clearBeforeDraw ? 'checked="checked" ' : '')+
+						'/>' +//onclick="window.plugin.extendLink.clearBeforeDrawClicked()"
+				'</td>' +
+			'</tr>' ;
+		html +=
+			'<tr>' +
+				'<td>' +
+					'Link length in m' +
+				'</td>' +
+				'<td>' +
+					'<input id="extendLink-linkLength" size="10" maxlength="7" type="text" '+
+						'value="'+ window.plugin.extendLink.storage.linkLength + '"'+
+						'/>' +
+				'</td>' +
+			'</tr>' ;
+		html +=
+			'</table>' +
+		'</div>' +
+		'<div style="text-align:center">' +
+			'<button type="button" onclick="window.plugin.extendLink.resetOpt()">Reset</button> ' +
+			'<button type="button" onclick="window.plugin.extendLink.saveOpt()">Save</button>' +
+		'</div>';
+		dialog({
+			html: html,
+			id: 'extendLink_opt',
+			title: 'Extend link preferences',
+			width: 'auto'
+		});
+	}
+	
     /***************************************************************************************************************************************************************/
     window.plugin.extendLink.clearLog = function () {
         if (window.plugin.extendLink.isSmart) {
@@ -250,15 +311,15 @@ function wrapper(plugin_info) {
 
         // toolbox menu
         $('#toolbox').after('<div id="extendLink-toolbox" style="padding:3px;"></div>');
-        var amdToolbox = $('#extendLink-toolbox');
-        amdToolbox.append(' <strong>Extended links : </strong>');
-        amdToolbox.append('<a onclick="window.plugin.extendLink.drawClicked()" title="Draw extended links">Draw extended links</a>&nbsp;&nbsp;');
-        amdToolbox.append('<a onclick="window.plugin.extendLink.clearDrawClicked()" title="Clear extended links">Clear</a>&nbsp;&nbsp;');
-        // amdToolbox.append(' <br /><input id="extendLink-clearBeforeDraw" type="checkbox" onclick="window.plugin.extendLink.clearBeforeDrawClicked()" />');
-        // amdToolbox.append('<label for="extendLink-clearBeforeDraw">Clear before draw</label>');
+        var elToolbox = $('#extendLink-toolbox');
+        elToolbox.append(' <strong>Extend links : </strong>');
+        elToolbox.append('<a onclick="window.plugin.extendLink.drawClicked()" title="Draw extended links">Draw links</a>&nbsp;&nbsp;');
+        elToolbox.append('<a onclick="window.plugin.extendLink.clearDrawClicked()" title="Clear extended links">Clear</a>&nbsp;&nbsp;');
+		elToolbox.append('<a onclick="window.plugin.extendLink.optClicked()" title="Clear extended links">Opt</a>&nbsp;&nbsp;');
+        // elToolbox.append(' <br /><input id="extendLink-clearBeforeDraw" type="checkbox" onclick="window.plugin.extendLink.clearBeforeDrawClicked()" />');
+        // elToolbox.append('<label for="extendLink-clearBeforeDraw">Clear before draw</label>');
 
-        $('#extendLink-clearBeforeDraw').prop('checked', window.plugin.extendLink.storage.clearBeforeDraw);
-        //$('#extendLink-fieldMode').val(window.plugin.extendLink.storage.fieldMode);
+        //$('#extendLink-clearBeforeDraw').prop('checked', window.plugin.extendLink.storage.clearBeforeDraw);
 
 
         if (window.plugin.extendLink.isSmart) {
