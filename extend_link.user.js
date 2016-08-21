@@ -2,10 +2,10 @@
 // @id             iitc-plugin-extend-link@Jormund
 // @name           IITC plugin: extend link
 // @category       Layer
-// @version        0.1.1.20160821.2003
+// @version        0.1.1.20160821.2217
 // @namespace      https://github.com/jonatkins/ingress-intel-total-conversion
 // @downloadURL    https://github.com/Jormund/extend_link/raw/master/extend_link.user.js
-// @description    [2016-08-21-2003] Draw the line between consecutive bookmarks and extend it
+// @description    [2016-08-21-2217] Draw the line between consecutive bookmarks and extend it
 // @include        https://www.ingress.com/intel*
 // @include        http://www.ingress.com/intel*
 // @match          https://www.ingress.com/intel*
@@ -28,12 +28,14 @@ function wrapper(plugin_info) {
     window.plugin.extendLink.KEY_STORAGE = 'extendLink-storage';
 	window.plugin.extendLink.DEFAULT_LINK_LENGTH = 1000000;//in m//TODO: input
     window.plugin.extendLink.DEFAULT_CLEAR_BEFORE_DRAW = true;
+	window.plugin.extendLink.DEFAULT_GUESS_DIRECTIONS = true;
 	
     window.plugin.extendLink.storage = { 
         linkLength: window.plugin.extendLink.DEFAULT_LINK_LENGTH,
-		clearBeforeDraw: window.plugin.extendLink.DEFAULT_CLEAR_BEFORE_DRAW
+		clearBeforeDraw: window.plugin.extendLink.DEFAULT_CLEAR_BEFORE_DRAW,
+		guessDirections: window.plugin.extendLink.DEFAULT_GUESS_DIRECTIONS
     };
-    window.plugin.extendLink.debug = false;
+    window.plugin.extendLink.debug = true;
     window.plugin.extendLink.isSmart = undefined; //will be true on smartphones after setup
 
     // update the localStorage datas
@@ -54,12 +56,15 @@ function wrapper(plugin_info) {
 		if (typeof window.plugin.extendLink.storage.clearBeforeDraw == "undefined") {
             window.plugin.extendLink.storage.clearBeforeDraw = window.plugin.extendLink.DEFAULT_CLEAR_BEFORE_DRAW;
         }
+		if (typeof window.plugin.extendLink.storage.guessDirections == "undefined") {
+            window.plugin.extendLink.storage.guessDirections = window.plugin.extendLink.DEFAULT_GUESS_DIRECTIONS;
+        }
     };
 
-    window.plugin.extendLink.clearBeforeDrawClicked = function () {
-        window.plugin.extendLink.storage.clearBeforeDraw = $("#extendLink-clearBeforeDraw").is(":checked");
-        window.plugin.extendLink.saveStorage();
-    };
+    // window.plugin.extendLink.clearBeforeDrawClicked = function () {
+        // window.plugin.extendLink.storage.clearBeforeDraw = $("#extendLink-clearBeforeDraw").is(":checked");
+        // window.plugin.extendLink.saveStorage();
+    // };
 
     /***************************************************************************************************************************************************************/
     /** DRAW **************************************************************************************************************************************************/
@@ -112,7 +117,8 @@ function wrapper(plugin_info) {
 		}
 
 		var options = {
-			linkLength: window.plugin.extendLink.storage.linkLength
+			linkLength: window.plugin.extendLink.storage.linkLength,
+			guessDirections:  window.plugin.extendLink.storage.guessDirections
 		}
 		window.plugin.extendLink.drawExtendedLink(options);
     }
@@ -120,6 +126,7 @@ function wrapper(plugin_info) {
     window.plugin.extendLink.drawExtendedLink = function (options) {
         if (typeof options == 'undefined') options = {};
         if (typeof options.linkLength == 'undefined') options.linkLength = window.plugin.extendLink.DEFAULT_LINK_LENGTH;
+		if (typeof options.guessDirections == 'undefined') options.guessDirections = window.plugin.extendLink.DEFAULT_GUESS_DIRECTIONS;
 
         try {
 			window.plugin.extendLink.log('Start of extended links');
@@ -157,9 +164,12 @@ function wrapper(plugin_info) {
             window.plugin.extendLink.log(portalCount + ' portals found');
 
             //loop over portals
+			// var previousBearing = null;
+			// var previousWasSkiped = false;
 			for(var i = 1; i < portalCount;i++) {
 				var previousBkmrk = bkmrkArr[i-1];
 				var currentBkmrk = bkmrkArr[i];
+				
 				msg = 'Computing between '+currentBkmrk.latLng+' and '+previousBkmrk.latLng;
 				window.plugin.extendLink.log(msg);
 				
@@ -175,8 +185,47 @@ function wrapper(plugin_info) {
 						Math.sin(φ1)*Math.cos(φ2)*Math.cos(Δλ);
 				var θ = Math.atan2(y, x);
 				var bearing = (θ*L.LatLng.RAD_TO_DEG+360) % 360;
-				msg = 'Bearing is '+bearing+'';
+				msg = 'Bearing is '+bearing+'°';
 				window.plugin.extendLink.log(msg);
+				
+				if(options.guessDirections) {
+					var skip = false;
+					var dif = 0;
+					if(currentBkmrk.folderId != previousBkmrk.folderId) {
+						skip = true;
+					}
+					if(skip) {
+						msg = 'Changing folder from '+previousBkmrk.folderId+' to '+currentBkmrk.folderId;
+						window.plugin.extendLink.log(msg);
+						// previousWasSkiped = true;
+						continue;
+					}
+					
+					// if(!previousWasSkiped) {
+						// if(bearing > previousBearing) {
+							// dif = bearing - previousBearing;
+							// if(360-bearing+previousBearing < dif)
+								// dif = 360-bearing+previousBearing;
+						// }
+						// else {//if(bearing <= previousBearing)
+							// dif = previousBearing - bearing;
+							// if(360-previousBearing+bearing < dif)
+								// dif = 360-previousBearing+bearing;
+						// }
+						
+						// if(previousBearing != undefined && dif > 90) {
+							// skip = true;
+						// }
+					// }
+					// if(skip) {
+						// msg = 'Changing bearing from '+previousBearing+'° to '+bearing+'° (dif='+dif+')';
+						// window.plugin.extendLink.log(msg);
+						// previousBearing = bearing;
+						// previousWasSkiped = true;
+						// continue;
+					// }
+				}
+				
 				//then compute line end
 				var distance = options.linkLength;
 				var earthRadius = 6371e3;
@@ -191,6 +240,11 @@ function wrapper(plugin_info) {
 				window.plugin.extendLink.log(msg);
 				latLngs = [currentBkmrk.latLng, otherEndLatLng];
                 window.plugin.extendLink.drawLine(latLngs);//actually draw the line
+				
+				// previousBearing = bearing;
+				// if(previousWasSkiped) {
+					// previousWasSkiped = false;
+				// }
 			}
 
             if (window.plugin.extendLink.isSmart) {
@@ -220,7 +274,9 @@ function wrapper(plugin_info) {
 	window.plugin.extendLink.resetOpt = function () {
 		window.plugin.extendLink.storage.linkLength = window.plugin.extendLink.DEFAULT_LINK_LENGTH;
         window.plugin.extendLink.storage.clearBeforeDraw = window.plugin.extendLink.DEFAULT_CLEAR_BEFORE_DRAW;
+		window.plugin.extendLink.storage.guessDirections = window.plugin.extendLink.DEFAULT_GUESS_DIRECTIONS;
 
+		window.plugin.extendLink.saveStorage();
 		window.plugin.extendLink.openOptDialog();
 	}
 	window.plugin.extendLink.saveOpt = function () {
@@ -228,6 +284,7 @@ function wrapper(plugin_info) {
 		var linkLength = $('#extendLink-linkLength').val();
 		linkLength = parseFloat(linkLength);
 		if(!isNaN(linkLength))window.plugin.extendLink.storage.linkLength = linkLength;
+		window.plugin.extendLink.storage.guessDirections = $('#extendLink-guessDirections').is(":checked");
 			
 		window.plugin.extendLink.saveStorage();
 	}
@@ -247,6 +304,17 @@ function wrapper(plugin_info) {
 					'<input id="extendLink-clearBeforeDraw" type="checkbox" '+
 						(window.plugin.extendLink.storage.clearBeforeDraw ? 'checked="checked" ' : '')+
 						'/>' +//onclick="window.plugin.extendLink.clearBeforeDrawClicked()"
+				'</td>' +
+			'</tr>' ;
+		html +=
+			'<tr>' +
+				'<td>' +
+					'<acronym title="Guesses when the bookmarks are not close and doesn\'t link them">No link when vertex changes</acronym>' +
+				'</td>' +
+				'<td>' +
+					'<input id="extendLink-guessDirections" type="checkbox" '+
+						(window.plugin.extendLink.storage.guessDirections ? 'checked="checked" ' : '')+
+						'/>' +
 				'</td>' +
 			'</tr>' ;
 		html +=
