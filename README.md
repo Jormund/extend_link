@@ -1,1 +1,1 @@
-# extend_link
+# IITC plugin : extend link
