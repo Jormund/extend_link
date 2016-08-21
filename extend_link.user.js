@@ -33,7 +33,7 @@ function wrapper(plugin_info) {
         linkLength: window.plugin.extendLink.DEFAULT_LINK_LENGTH,
 		clearBeforeDraw: window.plugin.extendLink.DEFAULT_CLEAR_BEFORE_DRAW
     };
-    window.plugin.extendLink.debug = true;
+    window.plugin.extendLink.debug = false;
     window.plugin.extendLink.isSmart = undefined; //will be true on smartphones after setup
 
     // update the localStorage datas
