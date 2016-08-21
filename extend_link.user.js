@@ -1,11 +1,11 @@
-﻿// ==UserScript==
+// ==UserScript==
 // @id             iitc-plugin-extend-link@Jormund
 // @name           IITC plugin: extend link
 // @category       Layer
-// @version        0.1.0.20160818.2030
+// @version        0.1.0.20160821.1840
 // @namespace      https://github.com/jonatkins/ingress-intel-total-conversion
-// @downloadURL    https://raw.githubusercontent.com/Jormund/extendLink/master/extendLink.user.js
-// @description    [2016-08-18-2030] 
+// @downloadURL    https://github.com/Jormund/extend_link/raw/master/extend_link.user.js
+// @description    [2016-08-21-1840] Draw the line between consecutive bookmarks and extend it
 // @include        https://www.ingress.com/intel*
 // @include        http://www.ingress.com/intel*
 // @match          https://www.ingress.com/intel*
