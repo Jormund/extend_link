@@ -2,10 +2,10 @@
 // @id             iitc-plugin-extend-link@Jormund
 // @name           IITC plugin: extend link
 // @category       Layer
-// @version        0.1.2.20160822.1601
+// @version        0.1.3.20160822.1616
 // @namespace      https://github.com/jonatkins/ingress-intel-total-conversion
 // @downloadURL    https://raw.githubusercontent.com/Jormund/extend_link/master/extend_link.user.js
-// @description    [2016-08-22-1601] Draw the line between consecutive bookmarks and extend it
+// @description    [2016-08-22-1616] Draw the line between consecutive bookmarks and extend it
 // @include        https://www.ingress.com/intel*
 // @include        http://www.ingress.com/intel*
 // @match          https://www.ingress.com/intel*
@@ -450,16 +450,26 @@ function wrapper(plugin_info) {
 			'</tr>';
         html +=
 			'</table>' +
-		'</div>' +
-		'<div style="text-align:center">' +
-			'<button type="button" onclick="window.plugin.extendLink.resetOpt()">Reset</button> ' +
-			'<button type="button" onclick="window.plugin.extendLink.saveOpt()">Save</button>' +
-		'</div>';
+		'</div>' //+
+//		'<div style="text-align:center">' +
+//			'<button type="button" onclick="window.plugin.extendLink.resetOpt()">Reset</button> ' +
+//			'<button type="button" onclick="window.plugin.extendLink.saveOpt()">Save</button>' +
+//		'</div>'
+        ;
         dialog({
             html: html,
             id: 'extendLink_opt',
             title: 'Extend link preferences',
-            width: 'auto'
+            width: 'auto',
+            buttons: {
+                'Reset': function () {
+                    window.plugin.extendLink.resetOpt();
+                },
+                'Save': function () {
+                    window.plugin.extendLink.saveOpt();
+                    $(this).dialog('close');
+                }
+            }
         });
     }
 
