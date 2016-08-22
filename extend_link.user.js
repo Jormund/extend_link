@@ -2,10 +2,10 @@
 // @id             iitc-plugin-extend-link@Jormund
 // @name           IITC plugin: extend link
 // @category       Layer
-// @version        0.1.1.20160822.1314
+// @version        0.1.1.20160822.1543
 // @namespace      https://github.com/jonatkins/ingress-intel-total-conversion
 // @downloadURL    https://raw.githubusercontent.com/Jormund/extend_link/master/extend_link.user.js
-// @description    [2016-08-22-1314] Draw the line between consecutive bookmarks and extend it
+// @description    [2016-08-22-1543] Draw the line between consecutive bookmarks and extend it
 // @include        https://www.ingress.com/intel*
 // @include        http://www.ingress.com/intel*
 // @match          https://www.ingress.com/intel*
@@ -34,6 +34,7 @@ function wrapper(plugin_info) {
     window.plugin.extendLink.DEFAULT_SKIP_BY_DISTANCE = true;
     window.plugin.extendLink.DEFAULT_SKIP_BY_DISTANCE_RATIO = 5; //skip if current length over previous length is over the ratio
     window.plugin.extendLink.DEFAULT_SKIP_BY_DISTANCE_THRESHOLD = 100; //in m //skip if current length > threshold
+    window.plugin.extendLink.DEFAULT_EXTEND_BOTH = false;
 
     window.plugin.extendLink.storage = {
         linkLength: window.plugin.extendLink.DEFAULT_LINK_LENGTH,
@@ -41,7 +42,8 @@ function wrapper(plugin_info) {
         skipFolderChange: window.plugin.extendLink.DEFAULT_SKIP_FOLDER_CHANGE,
         skipByDistance: window.plugin.extendLink.DEFAULT_SKIP_BY_DISTANCE,
         skipByDistanceRatio: window.plugin.extendLink.DEFAULT_SKIP_BY_DISTANCE_RATIO,
-        skipByDistanceThreshold: window.plugin.extendLink.DEFAULT_SKIP_BY_DISTANCE_THRESHOLD
+        skipByDistanceThreshold: window.plugin.extendLink.DEFAULT_SKIP_BY_DISTANCE_THRESHOLD,
+        extendBoth: window.plugin.extendLink.DEFAULT_EXTEND_BOTH
     };
 
     window.plugin.extendLink.isSmart = undefined; //will be true on smartphones after setup
@@ -75,6 +77,9 @@ function wrapper(plugin_info) {
         }
         if (typeof window.plugin.extendLink.storage.skipByDistanceThreshold == "undefined") {
             window.plugin.extendLink.storage.skipByDistanceThreshold = window.plugin.extendLink.DEFAULT_SKIP_BY_DISTANCE_THRESHOLD;
+        }
+        if (typeof window.plugin.extendLink.storage.extendBoth == "undefined") {
+            window.plugin.extendLink.storage.extendBoth = window.plugin.extendLink.DEFAULT_EXTEND_BOTH;
         }
     };
 
@@ -133,7 +138,8 @@ function wrapper(plugin_info) {
             skipFolderChange: window.plugin.extendLink.storage.skipFolderChange,
             skipByDistance: window.plugin.extendLink.storage.skipByDistance,
             skipByDistanceRatio: window.plugin.extendLink.storage.skipByDistanceRatio,
-            skipByDistanceThreshold: window.plugin.extendLink.storage.skipByDistanceThreshold
+            skipByDistanceThreshold: window.plugin.extendLink.storage.skipByDistanceThreshold,
+            extendBoth: window.plugin.extendLink.storage.extendBoth
         }
         window.plugin.extendLink.drawExtendedLink(options);
     }
@@ -145,6 +151,7 @@ function wrapper(plugin_info) {
         if (typeof options.skipByDistance == 'undefined') options.skipByDistance = window.plugin.extendLink.DEFAULT_SKIP_BY_DISTANCE;
         if (typeof options.skipByDistanceRatio == 'undefined') options.skipByDistanceRatio = window.plugin.extendLink.DEFAULT_SKIP_BY_DISTANCE_RATIO;
         if (typeof options.skipByDistanceThreshold == 'undefined') options.skipByDistanceThreshold = window.plugin.extendLink.DEFAULT_SKIP_BY_DISTANCE_THRESHOLD;
+        if (typeof options.extendBoth == 'undefined') options.skipByDistanceThreshold = window.plugin.extendLink.DEFAULT_EXTEND_BOTH;
 
         try {
             window.plugin.extendLink.log('Start of extend links');
@@ -220,7 +227,7 @@ function wrapper(plugin_info) {
                         msg = 'Skipping because distance ratio is ' + ratio + ' and distance is ' + currentDistance + '>' + options.skipByDistanceThreshold + ' (' + currentDistance + '/' + previousDistance + ' > ' + options.skipByDistanceRatio + ')';
                         window.plugin.extendLink.log(msg);
                         previousDistance = currentDistance;
-                        previousWasSkiped = true;//remember the skipping so we don't skip twice
+                        previousWasSkiped = true; //remember the skipping so we don't skip twice
                         continue;
                     }
                 }
@@ -254,6 +261,27 @@ function wrapper(plugin_info) {
                 window.plugin.extendLink.log(msg);
                 latLngs = [currentBkmrk.latLng, otherEndLatLng];
                 window.plugin.extendLink.drawLine(latLngs); //actually draw the line
+
+                if (options.extendBoth) {
+                    bearing = (bearing + 180) % 360; //reverse bearing
+                    var φ1 = L.LatLng.DEG_TO_RAD * previousBkmrk.latLng.lat; //change source
+                    var λ1 = L.LatLng.DEG_TO_RAD * previousBkmrk.latLng.lng;
+
+                    //then compute line end
+                    var distance = options.linkLength;
+                    var earthRadius = 6371e3;
+                    var δ = Number(distance) / earthRadius; // angular distance in radians
+                    var θ = Number(bearing) * L.LatLng.DEG_TO_RAD;
+                    var φ2 = Math.asin(Math.sin(φ1) * Math.cos(δ) + Math.cos(φ1) * Math.sin(δ) * Math.cos(θ));
+                    var x = Math.cos(δ) - Math.sin(φ1) * Math.sin(φ2);
+                    var y = Math.sin(θ) * Math.sin(δ) * Math.cos(φ1);
+                    var λ2 = λ1 + Math.atan2(y, x);
+                    var otherEndLatLng = L.latLng(φ2 * L.LatLng.RAD_TO_DEG, (λ2 * L.LatLng.RAD_TO_DEG + 540) % 360 - 180); // normalise to −180..+180°
+                    msg = 'New end is ' + otherEndLatLng;
+                    window.plugin.extendLink.log(msg);
+                    latLngs = [currentBkmrk.latLng, otherEndLatLng];
+                    window.plugin.extendLink.drawLine(latLngs); //actually draw the line
+                }
 
                 previousDistance = currentDistance;
                 if (previousWasSkiped) {
@@ -289,6 +317,7 @@ function wrapper(plugin_info) {
         window.plugin.extendLink.storage.skipByDistance = window.plugin.extendLink.DEFAULT_SKIP_BY_DISTANCE;
         window.plugin.extendLink.storage.skipByDistanceRatio = window.plugin.extendLink.DEFAULT_SKIP_BY_DISTANCE_RATIO;
         window.plugin.extendLink.storage.skipByDistanceThreshold = window.plugin.extendLink.DEFAULT_SKIP_BY_DISTANCE_THRESHOLD;
+        window.plugin.extendLink.storage.extendBoth = window.plugin.extendLink.DEFAULT_EXTEND_BOTH;
 
         window.plugin.extendLink.saveStorage();
         window.plugin.extendLink.openOptDialog();
@@ -306,6 +335,7 @@ function wrapper(plugin_info) {
         var skipByDistanceThreshold = $('#extendLink-skipByDistanceThreshold').val();
         skipByDistanceThreshold = parseFloat(skipByDistanceThreshold);
         if (!isNaN(skipByDistanceThreshold)) window.plugin.extendLink.storage.skipByDistanceThreshold = skipByDistanceThreshold;
+        window.plugin.extendLink.storage.extendBoth = $('#extendLink-extendBoth').is(":checked");
 
         window.plugin.extendLink.saveStorage();
     }
@@ -380,6 +410,17 @@ function wrapper(plugin_info) {
 				'<td>' +
 					'<input id="extendLink-linkLength" size="10" maxlength="8" type="text" ' +
 						'value="' + window.plugin.extendLink.storage.linkLength + '"' +
+						'/>' +
+				'</td>' +
+			'</tr>';
+        html +=
+			'<tr>' +
+				'<td>' +
+					'Extend both sides' +
+				'</td>' +
+				'<td>' +
+					'<input id="extendLink-extendBoth" type="checkbox" ' +
+						(window.plugin.extendLink.storage.extendBoth ? 'checked="checked" ' : '') +
 						'/>' +
 				'</td>' +
 			'</tr>';
