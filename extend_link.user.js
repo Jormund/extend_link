@@ -2,10 +2,10 @@
 // @id             iitc-plugin-extend-link@Jormund
 // @name           IITC plugin: extend link
 // @category       Layer
-// @version        0.1.1.20160822.1543
+// @version        0.1.2.20160822.1601
 // @namespace      https://github.com/jonatkins/ingress-intel-total-conversion
 // @downloadURL    https://raw.githubusercontent.com/Jormund/extend_link/master/extend_link.user.js
-// @description    [2016-08-22-1543] Draw the line between consecutive bookmarks and extend it
+// @description    [2016-08-22-1601] Draw the line between consecutive bookmarks and extend it
 // @include        https://www.ingress.com/intel*
 // @include        http://www.ingress.com/intel*
 // @match          https://www.ingress.com/intel*
@@ -35,6 +35,7 @@ function wrapper(plugin_info) {
     window.plugin.extendLink.DEFAULT_SKIP_BY_DISTANCE_RATIO = 5; //skip if current length over previous length is over the ratio
     window.plugin.extendLink.DEFAULT_SKIP_BY_DISTANCE_THRESHOLD = 100; //in m //skip if current length > threshold
     window.plugin.extendLink.DEFAULT_EXTEND_BOTH = false;
+    window.plugin.extendLink.DEFAULT_LOOP = false;
 
     window.plugin.extendLink.storage = {
         linkLength: window.plugin.extendLink.DEFAULT_LINK_LENGTH,
@@ -43,7 +44,8 @@ function wrapper(plugin_info) {
         skipByDistance: window.plugin.extendLink.DEFAULT_SKIP_BY_DISTANCE,
         skipByDistanceRatio: window.plugin.extendLink.DEFAULT_SKIP_BY_DISTANCE_RATIO,
         skipByDistanceThreshold: window.plugin.extendLink.DEFAULT_SKIP_BY_DISTANCE_THRESHOLD,
-        extendBoth: window.plugin.extendLink.DEFAULT_EXTEND_BOTH
+        extendBoth: window.plugin.extendLink.DEFAULT_EXTEND_BOTH,
+        loop: window.plugin.extendLink.DEFAULT_LOOP
     };
 
     window.plugin.extendLink.isSmart = undefined; //will be true on smartphones after setup
@@ -80,6 +82,9 @@ function wrapper(plugin_info) {
         }
         if (typeof window.plugin.extendLink.storage.extendBoth == "undefined") {
             window.plugin.extendLink.storage.extendBoth = window.plugin.extendLink.DEFAULT_EXTEND_BOTH;
+        }
+        if (typeof window.plugin.extendLink.storage.loop == "undefined") {
+            window.plugin.extendLink.storage.loop = window.plugin.extendLink.DEFAULT_LOOP;
         }
     };
 
@@ -139,7 +144,8 @@ function wrapper(plugin_info) {
             skipByDistance: window.plugin.extendLink.storage.skipByDistance,
             skipByDistanceRatio: window.plugin.extendLink.storage.skipByDistanceRatio,
             skipByDistanceThreshold: window.plugin.extendLink.storage.skipByDistanceThreshold,
-            extendBoth: window.plugin.extendLink.storage.extendBoth
+            extendBoth: window.plugin.extendLink.storage.extendBoth,
+            loop: window.plugin.extendLink.storage.loop
         }
         window.plugin.extendLink.drawExtendedLink(options);
     }
@@ -152,6 +158,7 @@ function wrapper(plugin_info) {
         if (typeof options.skipByDistanceRatio == 'undefined') options.skipByDistanceRatio = window.plugin.extendLink.DEFAULT_SKIP_BY_DISTANCE_RATIO;
         if (typeof options.skipByDistanceThreshold == 'undefined') options.skipByDistanceThreshold = window.plugin.extendLink.DEFAULT_SKIP_BY_DISTANCE_THRESHOLD;
         if (typeof options.extendBoth == 'undefined') options.skipByDistanceThreshold = window.plugin.extendLink.DEFAULT_EXTEND_BOTH;
+        if (typeof options.loop == 'undefined') options.skipByDistanceThreshold = window.plugin.extendLink.DEFAULT_LOOP;
 
         try {
             window.plugin.extendLink.log('Start of extend links');
@@ -188,10 +195,14 @@ function wrapper(plugin_info) {
             }
             window.plugin.extendLink.log(portalCount + ' portals found');
 
-            //loop over portals
-            // var previousBearing = null;
+            
+            if (options.loop) {
+                portalCount++;
+                bkmrkArr.push(bkmrkArr[0]);
+            }
             var previousDistance = null;
             var previousWasSkiped = false;
+            //loop over portals
             for (var i = 1; i < portalCount; i++) {
                 var previousBkmrk = bkmrkArr[i - 1];
                 var currentBkmrk = bkmrkArr[i];
@@ -318,6 +329,7 @@ function wrapper(plugin_info) {
         window.plugin.extendLink.storage.skipByDistanceRatio = window.plugin.extendLink.DEFAULT_SKIP_BY_DISTANCE_RATIO;
         window.plugin.extendLink.storage.skipByDistanceThreshold = window.plugin.extendLink.DEFAULT_SKIP_BY_DISTANCE_THRESHOLD;
         window.plugin.extendLink.storage.extendBoth = window.plugin.extendLink.DEFAULT_EXTEND_BOTH;
+        window.plugin.extendLink.storage.loop = window.plugin.extendLink.DEFAULT_LOOP;
 
         window.plugin.extendLink.saveStorage();
         window.plugin.extendLink.openOptDialog();
@@ -336,6 +348,7 @@ function wrapper(plugin_info) {
         skipByDistanceThreshold = parseFloat(skipByDistanceThreshold);
         if (!isNaN(skipByDistanceThreshold)) window.plugin.extendLink.storage.skipByDistanceThreshold = skipByDistanceThreshold;
         window.plugin.extendLink.storage.extendBoth = $('#extendLink-extendBoth').is(":checked");
+        window.plugin.extendLink.storage.loop = $('#extendLink-loop').is(":checked");
 
         window.plugin.extendLink.saveStorage();
     }
@@ -421,6 +434,17 @@ function wrapper(plugin_info) {
 				'<td>' +
 					'<input id="extendLink-extendBoth" type="checkbox" ' +
 						(window.plugin.extendLink.storage.extendBoth ? 'checked="checked" ' : '') +
+						'/>' +
+				'</td>' +
+			'</tr>';
+        html +=
+			'<tr>' +
+				'<td>' +
+					'Loop' +
+				'</td>' +
+				'<td>' +
+					'<input id="extendLink-loop" type="checkbox" ' +
+						(window.plugin.extendLink.storage.loop ? 'checked="checked" ' : '') +
 						'/>' +
 				'</td>' +
 			'</tr>';
