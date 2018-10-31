@@ -2,19 +2,27 @@
 // @id             iitc-plugin-extend-link@Jormund
 // @name           IITC plugin: extend link
 // @category       Layer
-// @version        0.1.3.20180124.2001
+// @version        0.1.4.20181031.1930
 // @namespace      https://github.com/jonatkins/ingress-intel-total-conversion
-// @updateURL      https://cdn.rawgit.com/Jormund/extend_link/master/extend_link.meta.js
-// @downloadURL    https://cdn.rawgit.com/Jormund/extend_link/master/extend_link.user.js
-// @description    [2016-10-13-2028] Draw the line between consecutive bookmarks and extend it
+// @updateURL      https://raw.githubusercontent.com/Jormund/extend_link/master/extend_link.meta.js
+// @downloadURL    https://raw.githubusercontent.com/Jormund/extend_link/master/extend_link.user.js
+// @description    [2018-10-31-1930] Draw the line between consecutive bookmarks and extend it
 // @include        https://ingress.com/intel*
 // @include        http://ingress.com/intel*
 // @include        https://*.ingress.com/intel*
 // @include        http://*.ingress.com/intel*
+// @include        https://intel.ingress.com/*
+// @match          https://intel.ingress.com/*
 // @match          https://*.ingress.com/intel*
 // @match          http://*.ingress.com/intel*
 // @grant          none 
 // ==/UserScript==
+
+//Changelog
+//0.1.4 Activate on intel.ingress.com, changed download url to github
+//0.1.3 Save moved to dialog buttons 
+//0.1.2	Loop option
+//0.1.1	Added preferences dialog, extend both sides, skip on folder change and distance threshold
 
 function wrapper(plugin_info) {
     // ensure plugin framework is there, even if iitc is not yet loaded
