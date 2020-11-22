@@ -2,11 +2,11 @@
 // @id             iitc-plugin-extend-link@Jormund
 // @name           IITC plugin: extend link
 // @category       Layer
-// @version        0.1.4.20181031.1930
-// @namespace      https://github.com/jonatkins/ingress-intel-total-conversion
+// @version        1.0.0.20201122.1945
+// @namespace      https://github.com/jormund
 // @updateURL      https://raw.githubusercontent.com/Jormund/extend_link/master/extend_link.meta.js
 // @downloadURL    https://raw.githubusercontent.com/Jormund/extend_link/master/extend_link.user.js
-// @description    [2018-10-31-1930] Draw the line between consecutive bookmarks and extend it
+// @description    [2020-11-22-1945] Draw the line between consecutive bookmarks and extend it
 // @include        https://ingress.com/intel*
 // @include        http://ingress.com/intel*
 // @include        https://*.ingress.com/intel*
@@ -19,6 +19,7 @@
 // ==/UserScript==
 
 //Changelog
+//1.0.0 Fix for IITC-CE, in leaflet 1.6, DEG_TO_RAD and RAD_TO_DEG doesn't exist anymore
 //0.1.4 Activate on intel.ingress.com, changed download url to github
 //0.1.3 Save moved to dialog buttons 
 //0.1.2	Loop option
@@ -252,16 +253,19 @@ function wrapper(plugin_info) {
 
                 //http://www.movable-type.co.uk/scripts/latlong.html
                 //first we get the bearing
-                var φ1 = L.LatLng.DEG_TO_RAD * currentBkmrk.latLng.lat;
-                var λ1 = L.LatLng.DEG_TO_RAD * currentBkmrk.latLng.lng;
-                var φ2 = L.LatLng.DEG_TO_RAD * previousBkmrk.latLng.lat;
-                var λ2 = L.LatLng.DEG_TO_RAD * previousBkmrk.latLng.lng;
+                //In leaflet 1.6, DEG_TO_RAD and RAD_TO_DEG doesn't exist anymore
+                var DEG_TO_RAD = Math.PI / 180;
+                var RAD_TO_DEG = 180 / Math.PI;
+                var φ1 = DEG_TO_RAD * currentBkmrk.latLng.lat;
+                var λ1 = DEG_TO_RAD * currentBkmrk.latLng.lng;
+                var φ2 = DEG_TO_RAD * previousBkmrk.latLng.lat;
+                var λ2 = DEG_TO_RAD * previousBkmrk.latLng.lng;
                 var Δλ = λ2 - λ1;
                 var y = Math.sin(Δλ) * Math.cos(φ2);
                 var x = Math.cos(φ1) * Math.sin(φ2) -
 						Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
                 var θ = Math.atan2(y, x);
-                var bearing = (θ * L.LatLng.RAD_TO_DEG + 360) % 360;
+                var bearing = (θ * RAD_TO_DEG + 360) % 360;
                 msg = 'Bearing is ' + bearing + '°';
                 window.plugin.extendLink.log(msg);
 
@@ -269,12 +273,12 @@ function wrapper(plugin_info) {
                 var distance = options.linkLength;
                 var earthRadius = 6371e3;
                 var δ = Number(distance) / earthRadius; // angular distance in radians
-                var θ = Number(bearing) * L.LatLng.DEG_TO_RAD;
+                var θ = Number(bearing) * DEG_TO_RAD;
                 var φ2 = Math.asin(Math.sin(φ1) * Math.cos(δ) + Math.cos(φ1) * Math.sin(δ) * Math.cos(θ));
                 var x = Math.cos(δ) - Math.sin(φ1) * Math.sin(φ2);
                 var y = Math.sin(θ) * Math.sin(δ) * Math.cos(φ1);
                 var λ2 = λ1 + Math.atan2(y, x);
-                var otherEndLatLng = L.latLng(φ2 * L.LatLng.RAD_TO_DEG, (λ2 * L.LatLng.RAD_TO_DEG + 540) % 360 - 180); // normalise to −180..+180°
+                var otherEndLatLng = L.latLng(φ2 * RAD_TO_DEG, (λ2 * RAD_TO_DEG + 540) % 360 - 180); // normalise to −180..+180°
                 msg = 'New end is ' + otherEndLatLng;
                 window.plugin.extendLink.log(msg);
                 latLngs = [currentBkmrk.latLng, otherEndLatLng];
@@ -282,19 +286,19 @@ function wrapper(plugin_info) {
 
                 if (options.extendBoth) {
                     bearing = (bearing + 180) % 360; //reverse bearing
-                    var φ1 = L.LatLng.DEG_TO_RAD * previousBkmrk.latLng.lat; //change source
-                    var λ1 = L.LatLng.DEG_TO_RAD * previousBkmrk.latLng.lng;
+                    var φ1 = DEG_TO_RAD * previousBkmrk.latLng.lat; //change source
+                    var λ1 = DEG_TO_RAD * previousBkmrk.latLng.lng;
 
                     //then compute line end
                     var distance = options.linkLength;
                     var earthRadius = 6371e3;
                     var δ = Number(distance) / earthRadius; // angular distance in radians
-                    var θ = Number(bearing) * L.LatLng.DEG_TO_RAD;
+                    var θ = Number(bearing) * DEG_TO_RAD;
                     var φ2 = Math.asin(Math.sin(φ1) * Math.cos(δ) + Math.cos(φ1) * Math.sin(δ) * Math.cos(θ));
                     var x = Math.cos(δ) - Math.sin(φ1) * Math.sin(φ2);
                     var y = Math.sin(θ) * Math.sin(δ) * Math.cos(φ1);
                     var λ2 = λ1 + Math.atan2(y, x);
-                    var otherEndLatLng = L.latLng(φ2 * L.LatLng.RAD_TO_DEG, (λ2 * L.LatLng.RAD_TO_DEG + 540) % 360 - 180); // normalise to −180..+180°
+                    var otherEndLatLng = L.latLng(φ2 * RAD_TO_DEG, (λ2 * RAD_TO_DEG + 540) % 360 - 180); // normalise to −180..+180°
                     msg = 'New end is ' + otherEndLatLng;
                     window.plugin.extendLink.log(msg);
                     latLngs = [currentBkmrk.latLng, otherEndLatLng];
